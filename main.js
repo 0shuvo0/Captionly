@@ -458,7 +458,7 @@ async function generateCaptions(){
     setLoaderProgress(8);
     const audioData = await extractAudioFloat32(state.file);
 
-    showLoader(`Loading transcriber model…`, 'First run downloads the model — your browser caches it after that');
+    showLoader(`Loading transcriber AImodel…`, 'First run downloads the model — your browser caches it after that');
     const transcriber = await ensureTranscriber(modelId, (pct, file)=>{
       setLoaderProgress(pct);
       loaderSub.textContent = `Downloading ${file || 'model files'}… ${Math.round(pct)}%`;
