@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Captionly — AI captions, right in your browser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 34 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="4" width="32" height="18" rx="4" stroke="#6EE7B4" stroke-width="2"/>
+      <rect x="5" y="10" width="9" height="3" rx="1.5" fill="#6EE7B4"/>
+      <rect x="16" y="10" width="13" height="3" rx="1.5" fill="#FF7A50"/>
+      <rect x="5" y="16" width="17" height="3" rx="1.5" fill="#6EE7B4" opacity="0.6"/>
+      <path d="M11 22L8 28L15 22" fill="#10121A" stroke="#6EE7B4" stroke-width="1.4" stroke-linejoin="round"/>
+    </svg>
+    <div class="brand-text">
+      <div class="brand-name">Captionly</div>
+      <div class="brand-tag">on-device speech → captions</div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <span class="pill"><span class="dot"></span> runs 100% in your browser</span>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- ===================== SIDEBAR (STYLE CONTROLS) ===================== -->
+  <div class="sidebar">
+    <div>
+      <p class="sidebar-title">Caption style</p>
+    </div>
+
+    <div class="group">
+      <div class="field">
+        <div class="field-label">Caption mode</div>
+        <div class="seg" id="modeSeg">
+          <button data-val="line" class="active">Line by line</button>
+          <button data-val="word">Word by word</button>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <div class="field-label">Position</div>
+        <div class="seg" id="posSeg">
+          <button data-val="top">Top</button>
+          <button data-val="middle">Middle</button>
+          <button data-val="bottom" class="active">Bottom</button>
+        </div>
+      </div>
+      <div class="field" id="offsetField" style="margin-top:14px; margin-bottom:0;">
+        <div class="field-label">Distance from edge <span class="val" id="offsetVal">6%</span></div>
+        <input type="range" id="offset" min="0" max="40" value="6" step="1">
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="field">
+        <div class="field-label">Font</div>
+        <select id="fontFamily">
+          <option value="'Inter', sans-serif">Inter (clean)</option>
+          <option value="'Space Grotesk', sans-serif">Space Grotesk (geo)</option>
+          <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+          <option value="'Arial', sans-serif">Arial</option>
+          <option value="'Georgia', serif">Georgia (serif)</option>
+          <option value="'Impact', sans-serif">Impact (bold)</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="field-label">Weight</div>
+        <div class="seg" id="weightSeg">
+          <button data-val="500">Regular</button>
+          <button data-val="700" class="active">Bold</button>
+          <button data-val="800">Black</button>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <div class="field-label">Font size <span class="val" id="fontSizeVal">28px</span></div>
+        <input type="range" id="fontSize" min="14" max="64" value="28" step="1">
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="field">
+        <div class="field-label">Text color</div>
+        <div class="color-row">
+          <div class="swatch-input"><input type="color" id="textColor" value="#ffffff"></div>
+          <span class="hex" id="textColorHex">#FFFFFF</span>
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label">Active word color <span class="val">word-mode &amp; karaoke</span></div>
+        <div class="color-row">
+          <div class="swatch-input"><input type="color" id="activeColor" value="#ff7a50"></div>
+          <span class="hex" id="activeColorHex">#FF7A50</span>
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label">Background color</div>
+        <div class="color-row">
+          <div class="swatch-input"><input type="color" id="bgColor" value="#000000"></div>
+          <span class="hex" id="bgColorHex">#000000</span>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <div class="field-label">Background opacity <span class="val" id="bgOpacityVal">65%</span></div>
+        <input type="range" id="bgOpacity" min="0" max="100" value="65" step="1">
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="field">
+        <div class="field-label">Padding <span class="val" id="paddingVal">10px</span></div>
+        <input type="range" id="padding" min="0" max="36" value="10" step="1">
+      </div>
+      <div class="field">
+        <div class="field-label">Border radius <span class="val" id="radiusVal">8px</span></div>
+        <input type="range" id="radius" min="0" max="40" value="8" step="1">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <div class="field-label">Max width <span class="val" id="maxWidthVal">80%</span></div>
+        <input type="range" id="maxWidth" min="30" max="100" value="80" step="1">
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="toggle-row">
+        <div class="field-label" style="margin:0;">Text outline</div>
+        <label class="switch"><input type="checkbox" id="outline" checked><span class="track"><span class="knob"></span></span></label>
+      </div>
+      <div class="hint">Adds a soft dark stroke behind the text so captions stay readable over bright footage.</div>
+    </div>
+
+    <div class="hint">
+      Style changes apply live to the preview and to your final download — no need to regenerate the transcript.
+    </div>
+  </div>
+
+  <!-- ===================== MAIN (UPLOAD / PREVIEW / DOWNLOAD) ===================== -->
+  <div class="main">
+    <div class="main-head">
+      <div>
+        <h1>Preview</h1>
+        <p id="fileMeta">No video loaded yet</p>
+      </div>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="dropzone" id="dropzone">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none">
+          <path d="M12 16V4M12 4L7 9M12 4L17 9" stroke="#6EE7B4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="#8B93A6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="dz-title">Drop a video, or click to upload</div>
+        <div class="dz-sub">MP4 or WebM with an audio track works best. Everything happens locally — nothing is uploaded anywhere.</div>
+        <button class="dz-btn" type="button">Choose video</button>
+      </div>
+
+      <div class="video-wrap" id="videoWrap" style="display:none;">
+        <video id="video" playsinline controls></video>
+        <div class="caption-layer pos-bottom" id="captionLayer">
+          <div class="caption-box" id="captionBox"></div>
+        </div>
+      </div>
+
+      <div class="loader" id="loader">
+        <div class="waves"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="loader-text" id="loaderText">Loading…</div>
+        <div class="progress"><div class="progress-bar" id="loaderProgress"></div></div>
+        <div class="loader-sub" id="loaderSub"></div>
+      </div>
+    </div>
+
+    <input type="file" id="fileInput" accept="video/*">
+
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <button class="btn" id="changeBtn" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12V2M12 2L8 6M12 2l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Change video
+        </button>
+        <select class="inline" id="modelSize" title="Bigger models are more accurate but download more data and run slower — pick based on your device and how important accuracy is.">
+          <option disabled>Choose AI model</option>
+          <option value="Xenova/whisper-tiny.en" selected>Tiny — (~40MB)</option>
+          <option value="Xenova/whisper-base.en">Base — (~80MB)</option>
+          <option value="Xenova/whisper-small.en">Larger — (~250MB)</option>
+        </select>
+        <button class="btn primary" id="generateBtn" disabled>
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v3M12 18v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M3 12h3M18 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.8"/></svg>
+          Generate Captions
+        </button>
+      </div>
+      <div class="toolbar-group">
+        <span class="status-line" id="statusLine"></span>
+        <div class="dropdown" id="downloadDropdown">
+          <button class="btn" id="downloadBtn" disabled>
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 4v11M12 15l-4-4M12 15l4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Download video
+            <svg class="caret" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="dropdown-menu" id="downloadMenu">
+            <button class="dropdown-item" data-format="mp4" type="button">
+              <span class="dd-title">MP4</span>
+              <span class="dd-sub">.mp4 · widest compatibility</span>
+            </button>
+            <button class="dropdown-item" data-format="webm" type="button">
+              <span class="dd-title">WebM</span>
+              <span class="dd-sub">.webm · smaller file, faster export</span>
+            </button>
+            <div class="dropdown-divider"></div>
+            <button class="dropdown-item" data-format="srt" type="button">
+              <span class="dd-title">SRT</span>
+              <span class="dd-sub">.srt · subtitle file only, no video</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="timeline-wrap">
+      <div class="timeline-top">
+        <span class="t-label">Caption track</span>
+        <span class="timeline-time" id="timelineTime">00:00 / 00:00</span>
+      </div>
+      <div class="timeline-scroll" id="timelineScroll">
+        <div class="timeline-track" id="timelineTrack">
+          <div class="timeline-playhead" id="playhead" style="left:0%;"></div>
+        </div>
+      </div>
+      <div class="empty-note" id="timelineEmpty">Generate captions to see the caption track here.</div>
+    </div>
+
+    <p class="footnote">Speech recognition runs locally using a small Whisper model (via <a href="https://github.com/xenova/transformers.js" target="_blank" rel="noopener">transformers.js</a>). The first generation downloads the model once; your browser caches it for next time.</p>
+  </div>
+
+</div>
+
+<div class="modal-backdrop" id="editBackdrop">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-time" id="editTime">00:00 – 00:00</span>
+      <button class="modal-close" id="editClose" type="button" aria-label="Close">✕</button>
+    </div>
+    <label class="modal-label" for="editInput">Caption text</label>
+    <input type="text" id="editInput" class="modal-input" autocomplete="off" spellcheck="true">
+    <div class="modal-actions">
+      <button class="btn ghost" id="editCancel" type="button">Cancel</button>
+      <button class="btn primary" id="editSave" type="button">Save changes</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>
