@@ -374,6 +374,32 @@ async function extractAudioFloat32(file){
   return rendered.getChannelData(0);
 }
 
+// Extract audio for a specific time range (for chunked processing)
+async function extractAudioChunk(file, startTime, endTime){
+  const arrayBuffer = await file.arrayBuffer();
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const tmpCtx = new AudioCtx();
+  let decoded;
+  try{
+    decoded = await tmpCtx.decodeAudioData(arrayBuffer.slice(0));
+  } finally {
+    tmpCtx.close();
+  }
+  
+  const targetRate = 16000;
+  const startSample = Math.floor(startTime * decoded.sampleRate);
+  const endSample = Math.floor(endTime * decoded.sampleRate);
+  const chunkLength = Math.ceil((endTime - startTime) * targetRate);
+  
+  const offline = new OfflineAudioContext(1, chunkLength, targetRate);
+  const src = offline.createBufferSource();
+  src.buffer = decoded;
+  src.connect(offline.destination);
+  src.start(0, startTime);
+  const rendered = await offline.startRendering();
+  return rendered.getChannelData(0);
+}
+
 // ---------------------------------------------------------------------------
 // Transcription via transformers.js (Whisper, ONNX, runs in-browser)
 // ---------------------------------------------------------------------------
@@ -440,6 +466,10 @@ const MODEL_LABELS = {
   'Xenova/whisper-large-v3': 'Large',
 };
 
+// Process video in chunks for better performance with longer videos
+// CHUNK_DURATION = 1 minute per chunk
+const CHUNK_DURATION = 1 * 60;
+
 async function generateCaptions(){
   if(!state.file) return;
   const modelId = modelSizeSel.value;
@@ -454,45 +484,73 @@ async function generateCaptions(){
   downloadBtn.disabled = true;
   setStatus('');
   try{
-    showLoader('Extracting audio…', 'Decoding the audio track from your video');
-    setLoaderProgress(8);
-    const audioData = await extractAudioFloat32(state.file);
-
-    showLoader(`Loading transcriber AI model…`, 'First run downloads the model — your browser caches it after that');
+    const duration = state.duration || 0;
+    const totalChunks = Math.ceil(duration / CHUNK_DURATION);
+    
+    showLoader('Loading transcriber AI model…', 'First run downloads the model — your browser caches it after that');
     const transcriber = await ensureTranscriber(modelId, (pct, file)=>{
-      setLoaderProgress(pct);
+      setLoaderProgress(pct * 0.1); // 0-10% for model loading
       loaderSub.textContent = `Downloading ${file || 'model files'}… ${Math.round(pct)}%`;
     });
 
-    showLoader('Transcribing speech…', 'Running Whisper locally on your audio — larger videos take longer');
-    setLoaderProgress(15);
-    const output = await transcriber(audioData, {
-      chunk_length_s: 30,
-      stride_length_s: 5,
-      return_timestamps: 'word',
-    });
-    setLoaderProgress(95);
+    const allWords = [];
+    let currentChunk = 1;
 
-    const rawWords = (output.chunks || [])
-      .filter(c => c.timestamp && c.timestamp[0] != null && c.timestamp[1] != null && c.text && c.text.trim())
-      .map(c => ({ text: c.text, start: c.timestamp[0], end: Math.max(c.timestamp[1], c.timestamp[0]+0.05) }));
+    showLoader(`Transcribing speech (${totalChunks} segments)…`, 'Processing the first segment…');
+    setLoaderProgress(10);
 
-    if(!rawWords.length){
+    // Process video in chunks
+    for(let chunkIdx = 0; chunkIdx < totalChunks; chunkIdx++){
+      const chunkStart = chunkIdx * CHUNK_DURATION;
+      const chunkEnd = Math.min(chunkStart + CHUNK_DURATION, duration);
+      const chunkNumber = chunkIdx + 1;
+
+      loaderSub.textContent = `Processing segment ${chunkNumber}/${totalChunks} (${fmtTime(chunkStart)} - ${fmtTime(chunkEnd)})…`;
+
+      // Extract audio for this chunk
+      const audioData = await extractAudioChunk(state.file, chunkStart, chunkEnd);
+
+      // Transcribe this chunk
+      const output = await transcriber(audioData, {
+        chunk_length_s: 30,
+        stride_length_s: 5,
+        return_timestamps: 'word',
+      });
+
+      // Process results and adjust timestamps to match the global video timeline
+      const chunkWords = (output.chunks || [])
+        .filter(c => c.timestamp && c.timestamp[0] != null && c.timestamp[1] != null && c.text && c.text.trim())
+        .map(c => ({ 
+          text: c.text, 
+          start: c.timestamp[0] + chunkStart,  // Adjust to global timeline
+          end: Math.max(c.timestamp[1] + chunkStart, c.timestamp[0] + chunkStart + 0.05) 
+        }));
+
+      allWords.push(...chunkWords);
+
+      // Update progress based on chunks processed
+      const progressPercentage = 10 + (chunkNumber / totalChunks) * 80; // 10-90% for processing
+      setLoaderProgress(progressPercentage);
+    }
+
+    if(!allWords.length){
       throw new Error('No speech detected in this video.');
     }
 
-    state.words = rawWords;
-    state.lines = groupWordsIntoLines(rawWords);
+    setLoaderProgress(90);
+    loaderSub.textContent = 'Grouping words into caption lines…';
+
+    state.words = allWords;
+    state.lines = groupWordsIntoLines(allWords);
     renderTimelineSegments();
 
-    // Jump to the first caption so it's visible right away, and so any
-    // style tweak the user makes next shows up instantly without pressing play.
+    // Jump to the first caption so it's visible right away
     video.currentTime = Math.max(0, state.lines[0].start - 0.05);
     applyCaptionVars();
     updateOverlay(video.currentTime);
     downloadBtn.disabled = false;
     setLoaderProgress(100);
-    setStatus(`Captioned ${state.lines.length} lines · ${state.words.length} words`);
+    setStatus(`Captioned ${state.lines.length} lines · ${state.words.length} words · ${totalChunks} segment${totalChunks > 1 ? 's' : ''} processed`);
   } catch(err){
     console.error(err);
     setStatus(err.message || 'Something went wrong generating captions.', true);
@@ -638,7 +696,10 @@ async function exportVideo(formatKey='webm'){
 
   try{
     await requestWakeLock();
-    showLoader('Rendering your video…', "Stay on this tab and don't let your device sleep — playing through once to burn in captions");
+    const totalDuration = state.duration || 1;
+    const totalChunks = Math.ceil(totalDuration / 300); // 5-min export segments for status
+    
+    showLoader('Preparing video export…', "Rendering your video with captions — please stay on this tab");
     setLoaderProgress(0);
 
     const canvas = document.createElement('canvas');
@@ -675,11 +736,22 @@ async function exportVideo(formatKey='webm'){
     recorder.start();
 
     let raf;
+    let lastUpdateTime = 0;
+    let currentSegment = 1;
+    
     const drawFrame = ()=>{
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       drawCaptionOnCanvas(ctx, video.currentTime, canvas.width, canvas.height);
-      setLoaderProgress(state.duration ? (video.currentTime/state.duration)*100 : 0);
-      loaderSub.textContent = `${fmtTime(video.currentTime)} / ${fmtTime(state.duration)} · keep this tab open and your device awake`;
+      const progressPct = totalDuration ? (video.currentTime / totalDuration) * 100 : 0;
+      setLoaderProgress(progressPct);
+      
+      // Update status message every second to show progress
+      if(video.currentTime - lastUpdateTime >= 1){
+        const segmentNum = Math.floor(video.currentTime / 300) + 1;
+        loaderSub.textContent = `${fmtTime(video.currentTime)} / ${fmtTime(totalDuration)} · Segment ${Math.min(segmentNum, totalChunks)}/${totalChunks} · Keep this tab active`;
+        lastUpdateTime = video.currentTime;
+      }
+      
       if(!video.paused && !video.ended){
         raf = requestAnimationFrame(drawFrame);
       } else {
