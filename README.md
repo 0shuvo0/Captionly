@@ -23,7 +23,7 @@ Add captions to your videos using local AI entirely in your browser. Upload a vi
 ### Made with [Claude](https://claude.ai/)
 99% of this project was written by Claude, only 1% manual code tweaks were applied. 
 
-Here are some of the prompts used to generate this project:
+Here are the prompts used to generate this project:
 1. > create a ai video captions generator web app, user uploads vides and it automatically adds caption. it uses browser based ai models with transformer js/onnx to transcribe videos audio to text, then based on that and video time etc it automaically adds captions to vidoes. on left: controls eg font, font size, text/bg color, line by line or world by word captions, potision, padding , border radius etc, on right: preview with download button. Show loader when generating or downloading/loading models. models get cached for next page visits
 
 2. > it mostly works but i uploaded a portrait format video and captions are getting out of videos aspect ratio should be preserved also I should be able to click/play the preview videos to see how it looks and after generation when i change controls I should see changes in caption immediately insted of having to click generate captions againand again
