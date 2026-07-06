@@ -1,5 +1,5 @@
 # Captionly
-Add captions to your videos using local AI entirely in your browser. Upload a video, edit and style captions live, then export a captioned video or SRT — no uploads, login, servers, or API keys.
+Add captions to your videos using local AI entirely in your browser. Select a video, edit and style captions live, then export a captioned video or SRT — no uploads, login, servers, or API keys.
 [![Captionly preview](preview.webp)](https://0shuvo0.github.io/Captionly/)
 
 ### Features
@@ -47,3 +47,5 @@ Here are the prompts used to generate this project:
 11. > right now we only have one fix small ai model can we let user chose between tiny,medium and large model
 
 12. > can you write a short github readme.md for it what it is how it work etc keep it short
+
+13. > looks like when i upload longer videos the app takes a long time. can you update the codes for more longer videos it generates captions for few minutes of video at a time? also add appropriate loaders and update statuses 
